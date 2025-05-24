@@ -1,0 +1,108 @@
+---
+title: "Breaking Bad Viewership Analysis RR Lab 8"
+author: "Assyl Salah"
+date: "2025-05-24"
+output:
+  html_document:
+    theme: flatly
+    df_print: paged
+    toc: true
+    toc_depth: 2
+    code_folding: hide
+    self_contained: true
+---
+
+# *Breaking Bad*: A Brief Overview
+
+**Breaking Bad** is an American *crime drama* created by **Vince Gilligan**. It aired on **AMC** from **January 20, 2008** to **September 29, 2013**. The series follows *Walter White*, a high-school chemistry teacher turned meth manufacturer, and his former student *Jesse Pinkman*.
+
+::: {style="text-align:center;"}
+<img src="Breaking_Bad_logo.svg" width="300px"/>
+:::
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo      = TRUE,
+  warning   = FALSE,
+  message   = FALSE,
+  fig.width = 8,
+  fig.height= 4
+)
+library(rvest)
+library(dplyr)
+library(purrr)
+library(stringr)
+library(plotly)
+library(DT)
+library(ggplot2)
+
+```
+
+## 1. Data Import & Cleaning
+
+*I begin by **scraping** the episode tables from Wikipedia and performing basic **cleaning** so that all columns align properly.*
+
+```{r data}
+
+# 1) Scrape data from Wiki
+url    <- "https://en.wikipedia.org/wiki/List_of_Breaking_Bad_episodes"
+page   <- read_html(url)
+tables <- page %>% html_nodes("table.wikiepisodetable") %>%
+          html_table(header = 2, fill = TRUE)
+
+tables_ep <- keep(tables, ~ "No.overall" %in% names(.x))
+
+tables_clean <- map(tables_ep, function(tbl) {
+  names(tbl) <- make.names(names(tbl))
+  tbl[]      <- lapply(tbl, as.character)
+  tbl
+})
+
+df_raw <- bind_rows(tables_clean, .id = "Season") %>%
+  mutate(Season = as.integer(Season))
+
+vcol <- grep("viewers", names(df_raw), ignore.case=TRUE, value=TRUE)[1]
+
+# Strip out citations and parse numeric
+df_raw <- df_raw %>%
+  mutate(
+    Viewers = as.numeric(str_remove_all(.data[[vcol]], "\\[.*?\\]"))
+  )
+
+
+# Filter only to seasons 1–5
+df <- df_raw %>%
+  transmute(
+    Season         = Season,
+    EpisodeOverall = as.integer(str_extract(No.overall, "\\d+")),
+    Title          = Title,
+    Viewers        = Viewers
+  ) %>%
+  arrange(Season, EpisodeOverall) %>%
+  filter(Season <= 5)
+```
+
+**Quick look at the cleaned data**:
+
+```{r peek}
+knitr::kable(head(df), caption="*Table: First 6 episodes of the cleaned dataset*")
+```
+
+**Data summary**:
+
+```{r summary-raw}
+summary(df)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
