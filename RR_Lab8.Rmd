@@ -94,6 +94,90 @@ knitr::kable(head(df), caption="*Table: First 6 episodes of the cleaned dataset*
 summary(df)
 ```
 
+## 2. Summary Statistics
+
+*Next, I compute season‐level summaries: number of episodes and average viewers.*
+
+```{r summsry, echo=FALSE}
+season_summary <- df %>%
+  group_by(Season) %>%
+  summarise(
+    Avg.Viewers = round(mean(Viewers, na.rm=TRUE), 2)
+  )
+
+datatable(
+  season_summary,
+  rownames = FALSE,
+  caption  = htmltools::tags$caption(
+    style = 'caption-side: top; text-align: left;',
+    "**Table 1.** Average Viewers per Season"
+  ),
+  options = list(pageLength = 5, dom = 't')
+)
+```
+
+## 3. Episode‐Level Trend
+
+*Plot 1 shows **viewership for each episode** across all five seasons. Notice the clustering and spread.*
+
+```{r p1}
+p1 <- ggplot(df, aes(x=EpisodeOverall, y=Viewers, color=factor(Season))) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "Viewers per Episode (All Seasons)",
+    x     = "Episode (Overall)",
+    y     = "Viewers (millions)",
+    color = "Season"
+  ) +
+  theme_minimal(base_size=13)
+
+ggplotly(p1, tooltip=c("x","y","color")) %>%
+  layout(hovermode="closest") %>%
+  config(displayModeBar=FALSE)
+```
+
+## 4. Season‐Level Trend
+
+*Plot 2 shows the **average** viewership per season, highlighting an overall upward trajectory.*
+
+```{r p2}
+p2 <- ggplot(season_summary, aes(x=Season, y=Avg.Viewers)) +
+  geom_line(size=1.2, linetype="dashed", color="#205237") +
+  geom_point(size=4, color="#205237") +
+  labs(
+    title = "Average Viewers per Season",
+    x     = "Season",
+    y     = "Viewers (M)"
+  ) +
+  theme_minimal(base_size=14)
+
+ggplotly(p2, tooltip=c("x","y")) %>%
+  layout(hovermode="x unified") %>%
+  config(displayModeBar=FALSE)
+```
+
+## 5. Season‐to‐Season Change
+
+*Plot 3 illustrates the **change** in average viewership between consecutive seasons.*
+
+```{r p3}
+season_summary <- season_summary %>%
+  mutate(Delta = round(Avg.Viewers - lag(Avg.Viewers), 2))
+
+p3 <- ggplot(filter(season_summary, Season > 1),
+             aes(x=Season, y=Delta, text=paste0("Δ=",Delta," M"))) +
+  geom_col(fill="#2d4d00", alpha=0.8) +
+  labs(
+    title = "Change in Average Viewers Between Seasons",
+    x     = "Season",
+    y     = "Δ Viewers (M)"
+  ) +
+  theme_minimal(base_size=14)
+
+ggplotly(p3, tooltip="text") %>%
+  config(displayModeBar=FALSE)
+```
 
 
 
